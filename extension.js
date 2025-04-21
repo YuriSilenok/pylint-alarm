@@ -30,6 +30,15 @@ function activate(context) {
   const diagnosticCollection = vscode.languages.createDiagnosticCollection("pylint-buzzkill");
   context.subscriptions.push(diagnosticCollection);
   
+  const poopDecorator = vscode.window.createTextEditorDecorationType({
+    after: {
+      contentText: '💩',
+      margin: '0 0 0 10px'
+    }
+  });
+
+  context.subscriptions.push(poopDecorator);
+  
   const pythonPath = getPythonInterpreter();
   exec(`"${pythonPath}" -m pip install -U pylint`, (error, stdout, stderr) => {});
 
@@ -50,6 +59,7 @@ function activate(context) {
     // vscode.window.showInformationMessage(cmd);
     exec(cmd, (error, stdout, stderr) => {
       const diagnostics = [];
+      const poopDecorations = [];
 
       if (!stdout || stdout.trim() === "") {
         const diagnostic = new vscode.Diagnostic(
@@ -89,6 +99,20 @@ function activate(context) {
           (msg.endLine||msg.line)-1,
           (endColumn||(msg.column+1))
         );
+
+        const lineNum = (msg.line||1)-1;
+        try {
+          poopDecorations.push({
+            range: new vscode.Range(
+              lineNum, 
+              document.lineAt(lineNum).text.length,
+              lineNum,
+              document.lineAt(lineNum).text.length
+            )
+          });
+        } catch (e) {
+        }
+        
         const messageText = `${HELLO[messageId[0]]||":("} ${TEXT[messageId] || msg.message}`;
         const diagnostic = new vscode.Diagnostic(
           range,
@@ -102,7 +126,13 @@ function activate(context) {
         diagnostic.source = "ДУШНИЛА ";
         diagnostics.push(diagnostic);
       });
+
       diagnosticCollection.set(document.uri, diagnostics);
+
+      const editor = vscode.window.activeTextEditor;
+      if (editor && editor.document === document) {
+        editor.setDecorations(poopDecorator, poopDecorations);
+      }
     });
   });
 }
@@ -114,8 +144,6 @@ function getPythonInterpreter() {
 
   return pythonPath || "python"; // fallback на системный Python
 }
-
-
 
 function deactivate() {}
 
